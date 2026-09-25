@@ -1,0 +1,61 @@
+s1_id	cand_id	rep	K	s1_name	s1_addr	cand_name	cand_addr
+S1-548116192	S2-490084155	A_name_only	10	EXV Immunopharma Inc	733 Pavilion View Drive, Unit A102, Matthews, NC	Marble Bay Immunopharma Corporation	CENTRVILLE, 14409 1/2 COACHWAY DR, VA
+S1-548116192	S2-917225023	A_name_only	10	EXV Immunopharma Inc	733 Pavilion View Drive, Unit A102, Matthews, NC	ali rapid immunopharma inc	756 SHARON SAINT, BOWLING GREEN, OH
+S1-447452795	S3-358096110	A_name_only	10	Blue Network Corporation	177 1st Avenue, Nashville, TN	ARTS NETWORK CORP	913 Twin Oaks Dr, Broken Arrow, Oklahoma
+S1-447452795	S2-51228908	A_name_only	10	Blue Network Corporation	177 1st Avenue, Nashville, TN	TVE NETWORK	6323 SUNSET BAY ROAD, DRESDEN, NY
+S1-447452795	S2-570624163	A_name_only	10	Blue Network Corporation	177 1st Avenue, Nashville, TN	Metro Network Corporation	5789 BURNING RIDGE TRL, SOUTH BEND, IN
+S1-447452795	S3-538823390	A_name_only	10	Blue Network Corporation	177 1st Avenue, Nashville, TN	metro network corp	2033 Fulton Ave, Sacramento, California
+S1-447452795	S2-605462590	A_name_only	10	Blue Network Corporation	177 1st Avenue, Nashville, TN	@bluenetwork	42 ROSEWOOD LANE, SOUTHWICK, MA
+S1-447452795	S3-826562013	A_name_only	10	Blue Network Corporation	177 1st Avenue, Nashville, TN	yxz network inc	7300-D Riggs Rd, # 101, Hyattsville, Maryland
+S1-378978603	S2-84178757	A_name_only	10	QH Vendome, L.L.C.	Katy, TX, 21342 Bending Green Way	SJ ACE VENDOME ÍNC	60 UNEEDA ST, MADISON, WV
+S1-966027321	S3-480833323	A_name_only	10	Probst & Duran Newhold LLC	Boston, 31 Floyd Street, MA	All Newhold	Newport News City, Virginia, 316 Richmond Cir
+S1-966027321	S3-56893463	A_name_only	10	Probst & Duran Newhold LLC	Boston, 31 Floyd Street, MA	PJ Newhold [(Inc.)]	2147 Allegre Circle, Unit 312, Naperville, Illinois
+S1-966027321	S2-160175134	A_name_only	10	Probst & Duran Newhold LLC	Boston, 31 Floyd Street, MA	K 8 W Newhold Ltd	002425 26TH ST, SACRAMENTO, CA
+S1-966027321	S3-795172385	A_name_only	10	Probst & Duran Newhold LLC	Boston, 31 Floyd Street, MA	Ace Newhold	New York, Orangetown, 41 303, null
+S1-966027321	S3-817343457	A_name_only	10	Probst & Duran Newhold LLC	Boston, 31 Floyd Street, MA	K 8 W Newhold Inc	4110 Reid St, Houston, Texas
+S1-966027321	S3-649554347	A_name_only	10	Probst & Duran Newhold LLC	Boston, 31 Floyd Street, MA	PJ Newhold	2606 Legacy Lane, Killeen, Texas
+S1-966027321	S3-731209578	A_name_only	10	Probst & Duran Newhold LLC	Boston, 31 Floyd Street, MA	Highland LLC Newhold	0117 Brooke Ridge Dr, Thomasville, North Carolina
+S1-88817160	S3-925610694	A_name_only	10	Natka Beagle Pinnacle Hologram	1040 Cleveland Street, City Of Wisconsin Rapids, WI	Vanguard Pinnacle Hologram	1831 Sbore Dr, Holly Ridge CDP, North Carolina
+S1-88817160	S3-159460943	A_name_only	10	Natka Beagle Pinnacle Hologram	1040 Cleveland Street, City Of Wisconsin Rapids, WI	A Pinnacle	Arizona, 2624 Apache Cir, Cottonwood
+S1-88817160	S3-917642678	A_name_only	10	Natka Beagle Pinnacle Hologram	1040 Cleveland Street, City Of Wisconsin Rapids, WI	OGD Pinnacle  Hologram LLC	New York, Sinclairville, 3673 Pickard Rd
+S1-88817160	S2-436990684	A_name_only	10	Natka Beagle Pinnacle Hologram	1040 Cleveland Street, City Of Wisconsin Rapids, WI	Pinnacle	40675 KILBOURNE ROAD, WADSWORTH, IL
+S1-548116192	S2-512659256	C_norm_name_addr	10	EXV Immunopharma Inc	733 Pavilion View Drive, Unit A102, Matthews, NC	MATTHEWS ACTIVATE	
+S1-548116192	S3-996162727	C_norm_name_addr	10	EXV Immunopharma Inc	733 Pavilion View Drive, Unit A102, Matthews, NC	Holcomb and Greene Lifeco Inc	1348 Matthews Township Pkwy, # B1, Matthews, North Carolina
+S1-548116192	S2-819293089	C_norm_name_addr	10	EXV Immunopharma Inc	733 Pavilion View Drive, Unit A102, Matthews, NC	Matthews Fund, Inc.	
+S1-548116192	S2-69056709	C_norm_name_addr	10	EXV Immunopharma Inc	733 Pavilion View Drive, Unit A102, Matthews, NC	Matthews Bright	003101 DOE RIVER WAY, MATTHEWS, NC
+S1-548116192	S2-150000368	C_norm_name_addr	10	EXV Immunopharma Inc	733 Pavilion View Drive, Unit A102, Matthews, NC	-- Mcgraw Bay Ímmunopharma Harbor	735 LAKEVIEW AVE, ATL, GA
+S1-548116192	S2-427363098	C_norm_name_addr	10	EXV Immunopharma Inc	733 Pavilion View Drive, Unit A102, Matthews, NC	Drayiq Brvges	7126- FOREST RIDGE ROAD, MATTHEWS, NC
+S1-548116192	S2-5820949	C_norm_name_addr	10	EXV Immunopharma Inc	733 Pavilion View Drive, Unit A102, Matthews, NC	Beacon Inc Inc Service	WINCHESTER RD, ST MATTHEWS, KY
+S1-447452795	S2-412943106	C_norm_name_addr	10	Blue Network Corporation	177 1st Avenue, Nashville, TN	Peon  Inc.	16TH AVE, NASHVILLE, TN
+S1-447452795	S2-525518610	C_norm_name_addr	10	Blue Network Corporation	177 1st Avenue, Nashville, TN	Best Corp Services	OTAY ST, NASHVILLE, TN
+S1-447452795	S3-758311442	C_norm_name_addr	10	Blue Network Corporation	177 1st Avenue, Nashville, TN	Desert Network Corporation	
+S1-447452795	S2-584088730	C_norm_name_addr	10	Blue Network Corporation	177 1st Avenue, Nashville, TN	SILVER NETWORK CORPORATION	
+S1-447452795	S2-543413039	C_norm_name_addr	10	Blue Network Corporation	177 1st Avenue, Nashville, TN	Ochoa  Coastal Newbury LLC	950 1ST AVENUE, NASHVILLE, TN
+S1-447452795	S2-147367965	C_norm_name_addr	10	Blue Network Corporation	177 1st Avenue, Nashville, TN	Dorman Network Corp	
+S1-447452795	S2-33766954	C_norm_name_addr	10	Blue Network Corporation	177 1st Avenue, Nashville, TN	Health Network	HIGHWAY 70, NASHVILLE, TN
+S1-378978603	S2-862382923	C_norm_name_addr	10	QH Vendome, L.L.C.	Katy, TX, 21342 Bending Green Way	Ayres  Diamond Vendome	
+S1-844896591	S2-13865067	C_norm_name_addr	10	Modern Packaging Global PC	8935 Georgetown Pike, Fairfax County, VA	preferredpackagingstudios.com	5422-5426 BEECH RIDGE DR, FAIRFAX COUNTY, VA
+S1-844896591	S2-943698056	C_norm_name_addr	10	Modern Packaging Global PC	8935 Georgetown Pike, Fairfax County, VA	Summit  Creative LLC	VA, 16719 FAIRFAX DRIVE, KING GEORGE COUNTY
+S1-401761505	S2-549755928	C_norm_name_addr	10	Moran Staffing LLC	1902 Shamrock Road, Dothan, AL	Creative Concepts Staffing Staffing	
+S1-401761505	S2-409728957	C_norm_name_addr	10	Moran Staffing LLC	1902 Shamrock Road, Dothan, AL	DOTHAN CHOICE CION LTD	821 STATE AVE, DOTHAN, AL
+S1-401761505	S2-824082296	C_norm_name_addr	10	Moran Staffing LLC	1902 Shamrock Road, Dothan, AL	Pediatric  Dental Center of Dothan LLC	204 BOULDER DRIVE, DOTHAN, AL
+S1-548116192	S2-512659256	D_trans_name_addr	10	EXV Immunopharma Inc	733 Pavilion View Drive, Unit A102, Matthews, NC	MATTHEWS ACTIVATE	
+S1-548116192	S3-996162727	D_trans_name_addr	10	EXV Immunopharma Inc	733 Pavilion View Drive, Unit A102, Matthews, NC	Holcomb and Greene Lifeco Inc	1348 Matthews Township Pkwy, # B1, Matthews, North Carolina
+S1-548116192	S2-819293089	D_trans_name_addr	10	EXV Immunopharma Inc	733 Pavilion View Drive, Unit A102, Matthews, NC	Matthews Fund, Inc.	
+S1-548116192	S2-69056709	D_trans_name_addr	10	EXV Immunopharma Inc	733 Pavilion View Drive, Unit A102, Matthews, NC	Matthews Bright	003101 DOE RIVER WAY, MATTHEWS, NC
+S1-548116192	S2-150000368	D_trans_name_addr	10	EXV Immunopharma Inc	733 Pavilion View Drive, Unit A102, Matthews, NC	-- Mcgraw Bay Ímmunopharma Harbor	735 LAKEVIEW AVE, ATL, GA
+S1-548116192	S2-427363098	D_trans_name_addr	10	EXV Immunopharma Inc	733 Pavilion View Drive, Unit A102, Matthews, NC	Drayiq Brvges	7126- FOREST RIDGE ROAD, MATTHEWS, NC
+S1-548116192	S2-5820949	D_trans_name_addr	10	EXV Immunopharma Inc	733 Pavilion View Drive, Unit A102, Matthews, NC	Beacon Inc Inc Service	WINCHESTER RD, ST MATTHEWS, KY
+S1-447452795	S2-412943106	D_trans_name_addr	10	Blue Network Corporation	177 1st Avenue, Nashville, TN	Peon  Inc.	16TH AVE, NASHVILLE, TN
+S1-447452795	S2-525518610	D_trans_name_addr	10	Blue Network Corporation	177 1st Avenue, Nashville, TN	Best Corp Services	OTAY ST, NASHVILLE, TN
+S1-447452795	S3-758311442	D_trans_name_addr	10	Blue Network Corporation	177 1st Avenue, Nashville, TN	Desert Network Corporation	
+S1-447452795	S2-584088730	D_trans_name_addr	10	Blue Network Corporation	177 1st Avenue, Nashville, TN	SILVER NETWORK CORPORATION	
+S1-447452795	S2-543413039	D_trans_name_addr	10	Blue Network Corporation	177 1st Avenue, Nashville, TN	Ochoa  Coastal Newbury LLC	950 1ST AVENUE, NASHVILLE, TN
+S1-447452795	S2-147367965	D_trans_name_addr	10	Blue Network Corporation	177 1st Avenue, Nashville, TN	Dorman Network Corp	
+S1-447452795	S2-33766954	D_trans_name_addr	10	Blue Network Corporation	177 1st Avenue, Nashville, TN	Health Network	HIGHWAY 70, NASHVILLE, TN
+S1-378978603	S2-862382923	D_trans_name_addr	10	QH Vendome, L.L.C.	Katy, TX, 21342 Bending Green Way	Ayres  Diamond Vendome	
+S1-844896591	S2-13865067	D_trans_name_addr	10	Modern Packaging Global PC	8935 Georgetown Pike, Fairfax County, VA	preferredpackagingstudios.com	5422-5426 BEECH RIDGE DR, FAIRFAX COUNTY, VA
+S1-844896591	S2-943698056	D_trans_name_addr	10	Modern Packaging Global PC	8935 Georgetown Pike, Fairfax County, VA	Summit  Creative LLC	VA, 16719 FAIRFAX DRIVE, KING GEORGE COUNTY
+S1-401761505	S2-549755928	D_trans_name_addr	10	Moran Staffing LLC	1902 Shamrock Road, Dothan, AL	Creative Concepts Staffing Staffing	
+S1-401761505	S2-409728957	D_trans_name_addr	10	Moran Staffing LLC	1902 Shamrock Road, Dothan, AL	DOTHAN CHOICE CION LTD	821 STATE AVE, DOTHAN, AL
+S1-401761505	S2-824082296	D_trans_name_addr	10	Moran Staffing LLC	1902 Shamrock Road, Dothan, AL	Pediatric  Dental Center of Dothan LLC	204 BOULDER DRIVE, DOTHAN, AL

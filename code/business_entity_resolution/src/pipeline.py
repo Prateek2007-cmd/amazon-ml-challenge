@@ -1,219 +1,227 @@
 """
-End-to-end pipeline: load -> normalize -> block -> features ->
-train -> threshold sweep -> predict -> write outputs.
-
-Run from anywhere, from this `src/` directory:
-    python3 pipeline.py                         # uses dataset/train + dataset/test
-    python3 pipeline.py --data-dir dataset/sample   # smoke test on the tiny fixture
-
-Expects, under --data-dir (default: dataset, resolved relative to the
-repo root):
-    train/train_source1.tsv
-    train/train_source2.tsv
-    train/train_source3.tsv
-    train/train_ground_truth.tsv
-    test/test_source1.tsv
-    test/test_source2.tsv
-    test/test_source3.tsv
-
---data-dir dataset/sample expects the same 7 filenames directly inside
-it (no train/ or test/ subfolders) -- see dataset/sample/ itself.
-
-Writes, under --output-dir (default: output/):
-    matching_results.tsv
-    candidate_pairs.tsv
+End-to-End Autonomous Pipeline for Amazon ML Challenge 2026: Business Entity Resolution.
+Wired end-to-end:
+1. Fast streaming data loading (zero RAM bloat)
+2. Multi-representation normalization
+3. High-recall composite blocking (candidate generation)
+4. Pairwise feature engineering (26 C-accelerated RapidFuzz features)
+5. Model training (LightGBM / HistGradientBoosting)
+6. Out-of-fold threshold optimization for F0.5
+7. Scalable chunked inference on test set
+8. Output generation and strict formatting
+9. Official submission validation
+10. Final ZIP packaging
 """
-import argparse
 import os
-import random
 import sys
-
+import time
+import argparse
+import numpy as np
 import pandas as pd
+from collections import defaultdict
 
+sys.stdout.reconfigure(line_buffering=True, encoding="utf-8", errors="replace")
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from blocking import (
-    build_blocking_index,
-    generate_candidates,
-    merge_candidate_sets,
-    blocking_recall,
-)
-from features import pair_features, FEATURE_COLUMNS
-from model import train as train_model, sweep_threshold
+from config import Config
+from data_loader import get_data_paths, load_tsv, parse_ground_truth_fast, load_training_subsample
+from normalization import normalize_name, normalize_address
+from blocking import build_blocking_index, blocking_recall, extract_blocking_keys
+from features import extract_pairwise_features, FEATURE_COLUMNS
+from models import build_classifier, train_matcher, sweep_threshold_f05, save_model
+from validation import run_entity_level_cv
+from inference import run_chunked_inference
+from submission import write_results_tsv, run_official_validator, package_submission_zip
 
-REPO_ROOT = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..", "..", "..")
-)
-
-
-def load_tsv(path):
-    return pd.read_csv(path, sep="\t", dtype=str, keep_default_na=False)
-
-
-def parse_ground_truth(gt_df):
-    gt = {}
-    for _, row in gt_df.iterrows():
-        s1_id = row["source1_entity_id"]
-        raw = row.get("matched_entity_ids", "")
-        gt[s1_id] = set(x for x in str(raw).split(",") if x)
-    return gt
-
-
-def build_candidates_for(s1_df, s2_df, s3_df):
-    idx2 = build_blocking_index(s2_df)
-    idx3 = build_blocking_index(s3_df)
-    cand2 = generate_candidates(s1_df, idx2)
-    cand3 = generate_candidates(s1_df, idx3)
-    return merge_candidate_sets(cand2, cand3)
-
-
-def build_lookup(*dfs):
-    lookup = {}
-    for df in dfs:
-        for _, row in df.iterrows():
-            lookup[row["entity_id"]] = row
-    return lookup
-
-
-def build_feature_rows(s1_df, candidates, lookup, ground_truth=None):
-    """Returns (pairs, X, y). y is None if ground_truth is None."""
-    pairs, feat_rows = [], []
-    labels = [] if ground_truth is not None else None
-
-    for _, s1_row in s1_df.iterrows():
-        s1_id = s1_row["entity_id"]
-        cand_ids = candidates.get(s1_id, set())
-        true_set = ground_truth.get(s1_id, set()) if ground_truth is not None else set()
-        for cand_id in cand_ids:
-            cand_row = lookup.get(cand_id)
-            if cand_row is None:
-                continue
-            feats = pair_features(
-                s1_row["business_name"], s1_row["business_address"], s1_row["country"],
-                cand_row["business_name"], cand_row["business_address"], cand_row["country"],
-            )
-            pairs.append((s1_id, cand_id))
-            feat_rows.append(feats)
-            if labels is not None:
-                labels.append(1 if cand_id in true_set else 0)
-
-    X = pd.DataFrame(feat_rows, columns=FEATURE_COLUMNS).fillna(0.0)
-    return pairs, X, labels
-
-
-def write_id_list_tsv(path, s1_ids, id_lists, id_col_name):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        f.write(f"source1_entity_id\t{id_col_name}\n")
-        for s1_id in s1_ids:
-            ids = sorted(id_lists.get(s1_id, set()))
-            f.write(f"{s1_id}\t{','.join(ids)}\n")
-
-
-def resolve_paths(data_dir, output_dir):
-    if not os.path.isabs(data_dir):
-        data_dir = os.path.join(REPO_ROOT, data_dir)
-    if not os.path.isabs(output_dir):
-        output_dir = os.path.join(REPO_ROOT, output_dir)
-    return data_dir, output_dir
-
+def parse_args():
+    parser = argparse.ArgumentParser(description="Amazon ML Challenge 2026: Business Entity Resolution Pipeline")
+    parser.add_argument("--data-dir", default=None, help="Path to dataset root folder")
+    parser.add_argument("--output-dir", default=Config.OUTPUT_DIR, help="Path to output folder")
+    parser.add_argument("--sample", action="store_true", help="Run smoke test on tiny sample fixture")
+    parser.add_argument("--train-sample-size", type=int, default=10000, help="Number of S1 training entities for model fitting (default: 10,000)")
+    parser.add_argument("--test-sample-size", type=int, default=None, help="Optional sample size for test inference (default: all test entities)")
+    parser.add_argument("--model-type", default="lightgbm", choices=["lightgbm", "hist_gradient_boosting"], help="Model type to train")
+    parser.add_argument("--team-name", default="Antigravity_ML", help="Team name for final zip package")
+    return parser.parse_args()
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--data-dir", default="dataset",
-                         help="folder containing train/ and test/ subfolders "
-                              "(or, for the sample fixture, the 7 TSVs directly)")
-    parser.add_argument("--output-dir", default="output")
-    parser.add_argument("--sample", action="store_true",
-                         help="shorthand for --data-dir dataset/sample, flat layout")
-    args = parser.parse_args()
-
-    data_dir = "dataset/sample" if args.sample else args.data_dir
-    data_dir, output_dir = resolve_paths(data_dir, args.output_dir)
-    flat_layout = args.sample or os.path.exists(os.path.join(data_dir, "train_source1.tsv"))
-
-    def p(split, name):
-        return os.path.join(data_dir, name) if flat_layout else os.path.join(data_dir, split, name)
-
-    print(f"Data dir: {data_dir}  (flat layout: {flat_layout})")
-
-    print("Loading training data...")
-    train_s1 = load_tsv(p("train", "train_source1.tsv"))
-    train_s2 = load_tsv(p("train", "train_source2.tsv"))
-    train_s3 = load_tsv(p("train", "train_source3.tsv"))
-    ground_truth = parse_ground_truth(load_tsv(p("train", "train_ground_truth.tsv")))
-
-    print("Building training candidates (blocking)...")
-    train_candidates = build_candidates_for(train_s1, train_s2, train_s3)
-
-    recall, missed = blocking_recall(train_candidates, ground_truth)
-    print(f"Blocking recall on training set: {recall:.4f} ({len(missed)} true matches missed)")
-    if recall < 0.9:
-        print("WARNING: blocking recall is low -- widen your blocking keys "
-              "in blocking.py before trusting the classifier's numbers.")
-
-    print("Building feature rows for training pairs...")
-    train_lookup = build_lookup(train_s2, train_s3)
-    pairs, X, y = build_feature_rows(train_s1, train_candidates, train_lookup, ground_truth)
-    pos = sum(y) if y else 0
-    print(f"{len(pairs)} candidate pairs, {pos} positive, {len(pairs) - pos} negative")
-
-    print("Splitting Source1 entities into train/val (80/20)...")
-    s1_ids = list(train_s1["entity_id"])
-    random.Random(42).shuffle(s1_ids)
-    split_point = max(1, int(len(s1_ids) * 0.8))
-    train_ids = set(s1_ids[:split_point])
-    val_ids = set(s1_ids[split_point:]) or set(s1_ids[-1:])  # guarantee non-empty val
-
-    train_mask = [pid in train_ids for pid, _ in pairs]
-    val_mask = [pid in val_ids for pid, _ in pairs]
-
-    X_train = X[train_mask].reset_index(drop=True)
-    y_train = [label for label, m in zip(y, train_mask) if m]
-    X_val = X[val_mask].reset_index(drop=True)
-    val_pairs = [pr for pr, m in zip(pairs, val_mask) if m]
-    val_gt = {s1_id: matches for s1_id, matches in ground_truth.items() if s1_id in val_ids}
-
-    print("Training classifier...")
-    clf = train_model(X_train, y_train)
-
-    print("Sweeping threshold for best F0.5 on validation split...")
-    best_t, best_f05, _ = sweep_threshold(clf, X_val, val_pairs, val_gt)
-    print(f"Best threshold: {best_t:.2f} -> validation F0.5: {best_f05:.4f}")
-
-    print("Loading test data...")
-    test_s1 = load_tsv(p("test", "test_source1.tsv"))
-    test_s2 = load_tsv(p("test", "test_source2.tsv"))
-    test_s3 = load_tsv(p("test", "test_source3.tsv"))
-
-    print("Building test candidates (blocking)...")
-    test_candidates = build_candidates_for(test_s1, test_s2, test_s3)
-
-    print("Building feature rows for test pairs...")
-    test_lookup = build_lookup(test_s2, test_s3)
-    test_pairs, X_test, _ = build_feature_rows(test_s1, test_candidates, test_lookup)
-
-    print("Scoring test pairs and applying threshold...")
-    matches = {}
-    if len(X_test):
-        test_probs = clf.predict_proba(X_test)[:, 1]
-        for (s1_id, cand_id), prob in zip(test_pairs, test_probs):
-            if prob >= best_t:
-                matches.setdefault(s1_id, set()).add(cand_id)
-
-    test_s1_ids = list(test_s1["entity_id"])
-
-    print("Writing outputs...")
-    write_id_list_tsv(
-        os.path.join(output_dir, "matching_results.tsv"),
-        test_s1_ids, matches, "matched_entity_ids",
+    args = parse_args()
+    start_time = time.time()
+    
+    print("=" * 70, flush=True)
+    print("  AMAZON ML CHALLENGE 2026: BUSINESS ENTITY RESOLUTION PIPELINE", flush=True)
+    print("  Mode: MAXIMUM COMPETITION MODE (Metric: Macro F_0.5)", flush=True)
+    print("=" * 70, flush=True)
+    
+    # 1. Resolve paths
+    paths = get_data_paths(args.data_dir, is_sample=args.sample)
+    output_dir = args.output_dir
+    os.makedirs(output_dir, exist_ok=True)
+    
+    print(f"\n[PHASE 1] Resolving Dataset Paths from {os.path.dirname(paths['train_s1'])}...", flush=True)
+    
+    # 2. Load training data
+    if args.sample:
+        print("  Running in SAMPLE MODE on synthetic fixture...", flush=True)
+        s1_train_df = load_tsv(paths["train_s1"])
+        s2_train_df = load_tsv(paths["train_s2"])
+        s3_train_df = load_tsv(paths["train_s3"])
+        gt_train = parse_ground_truth_fast(paths["train_gt"])
+        s2_dict = s2_train_df.set_index("entity_id").to_dict("index")
+        s3_dict = s3_train_df.set_index("entity_id").to_dict("index")
+    else:
+        print(f"\n[PHASE 2] Loading Aligned Training Subsample ({args.train_sample_size:,d} entities)...", flush=True)
+        s1_train_df, s2_dict, s3_dict, gt_train = load_training_subsample(
+            paths, sample_size=args.train_sample_size, pool_size=100000
+        )
+        
+    print(f"  Training Pool: {len(s1_train_df):,d} S1 entities | {len(s2_dict):,d} S2 | {len(s3_dict):,d} S3", flush=True)
+    
+    # 3. Candidate Generation (Blocking)
+    print("\n[PHASE 3] Building Multi-Stage Composite Inverted Indices...", flush=True)
+    t_idx = time.time()
+    idx_s2_train = build_blocking_index(s2_dict.values())
+    idx_s3_train = build_blocking_index(s3_dict.values())
+    print(f"  Inverted indices built in {time.time()-t_idx:.2f}s (S2 keys: {len(idx_s2_train):,d}, S3 keys: {len(idx_s3_train):,d})", flush=True)
+    
+    print("  Generating candidate pairs for training entities...", flush=True)
+    t_cand = time.time()
+    train_cands = {}
+    train_pairs = []
+    features_list = []
+    labels = []
+    groups = []
+    
+    s1_dict = s1_train_df.set_index("entity_id").to_dict("index")
+    
+    for s1_id, s1_row in s1_dict.items():
+        true_matches = gt_train.get(s1_id, set())
+        keys = extract_blocking_keys(s1_row["business_name"], s1_row["business_address"], s1_row.get("country", ""))
+        
+        cands = set()
+        for k in keys:
+            cap = Config.MAX_NAME_TOK_POSTINGS if k[0] == "name_tok" else Config.MAX_COMPOSITE_POSTINGS
+            p2 = idx_s2_train.get(k, [])
+            p3 = idx_s3_train.get(k, [])
+            if len(p2) <= cap:
+                cands.update(p2)
+            if len(p3) <= cap:
+                cands.update(p3)
+            if len(cands) >= Config.MAX_CANDIDATES_PER_S1:
+                break
+                
+        train_cands[s1_id] = cands
+        
+        for cand_id in cands:
+            cand_row = s2_dict.get(cand_id) or s3_dict.get(cand_id)
+            if cand_row is None:
+                continue
+            feats = extract_pairwise_features(
+                s1_row["business_name"], s1_row["business_address"], s1_row.get("country", ""),
+                cand_row["business_name"], cand_row["business_address"], cand_row.get("country", ""),
+                cand_id
+            )
+            is_match = 1 if cand_id in true_matches else 0
+            train_pairs.append((s1_id, cand_id))
+            features_list.append(feats)
+            labels.append(is_match)
+            groups.append(s1_id)
+            
+    recall, missed = blocking_recall(train_cands, gt_train)
+    avg_cands = len(train_pairs) / len(s1_train_df) if len(s1_train_df) else 0
+    print(f"  [BLOCKING METRIC] Candidate Recall: {recall*100:.2f}% | Avg Candidates/S1: {avg_cands:.1f} ({len(train_pairs):,d} pairs generated in {time.time()-t_cand:.2f}s)", flush=True)
+    
+    # 4. Model Training & Cross-Validation
+    print(f"\n[PHASE 4] Entity-Level Cross-Validation & Threshold Optimization ({args.model_type})...", flush=True)
+    X = np.array(features_list, dtype=np.float32)
+    y = np.array(labels, dtype=np.int32)
+    groups = np.array(groups)
+    
+    if len(s1_train_df) >= 10:
+        oof_probs, best_threshold, best_f05, cv_metrics = run_entity_level_cv(
+            lambda: build_classifier(args.model_type),
+            X, y, groups, train_pairs, gt_train, n_splits=5
+        )
+        print(f"  [5-FOLD CV RESULT]", flush=True)
+        print(f"    Best Threshold: {best_threshold:.2f}", flush=True)
+        print(f"    Macro F0.5:     {best_f05:.4f}", flush=True)
+        print(f"    Precision:      {cv_metrics['precision']:.4f}", flush=True)
+        print(f"    Recall:         {cv_metrics['recall']:.4f}", flush=True)
+        print(f"    TP: {cv_metrics['tp']:,d} | FP: {cv_metrics['fp']:,d} | FN: {cv_metrics['fn']:,d}", flush=True)
+    else:
+        best_threshold = 0.50
+        best_f05 = 1.0
+        
+    print(f"\n[PHASE 5] Training Final Matcher on Full Training Subsample...", flush=True)
+    clf = train_matcher(X, y, model_type=args.model_type)
+    model_save_path = os.path.join(output_dir, "entity_resolver_model.joblib")
+    save_model(clf, model_save_path)
+    print(f"  Model saved to {model_save_path}", flush=True)
+    
+    # 5. Test Set Inference
+    print("\n[PHASE 6] Loading Test Set & Executing Inference...", flush=True)
+    if args.sample:
+        test_s1 = load_tsv(paths["test_s1"])
+        test_s2 = load_tsv(paths["test_s2"])
+        test_s3 = load_tsv(paths["test_s3"])
+        idx_s2_test = build_blocking_index(test_s2)
+        idx_s3_test = build_blocking_index(test_s3)
+        lookup_s2 = test_s2.set_index("entity_id").to_dict("index")
+        lookup_s3 = test_s3.set_index("entity_id").to_dict("index")
+    else:
+        if args.test_sample_size is not None:
+            print(f"  Reading sample of {args.test_sample_size:,d} test entities...", flush=True)
+            test_s1 = load_tsv(paths["test_s1"], nrows=args.test_sample_size)
+            # For test sample, build index over first 150k of test S2/S3
+            test_s2 = load_tsv(paths["test_s2"], nrows=150000)
+            test_s3 = load_tsv(paths["test_s3"], nrows=150000)
+        else:
+            print(f"  Reading ALL test entities from test_source1.tsv...", flush=True)
+            test_s1 = load_tsv(paths["test_s1"])
+            test_s2 = load_tsv(paths["test_s2"])
+            test_s3 = load_tsv(paths["test_s3"])
+            
+        print(f"  Building Test Inverted Indices (S2: {len(test_s2):,d} records, S3: {len(test_s3):,d} records)...", flush=True)
+        t_tidx = time.time()
+        idx_s2_test = build_blocking_index(test_s2)
+        idx_s3_test = build_blocking_index(test_s3)
+        print(f"  Test indices built in {time.time()-t_tidx:.2f}s", flush=True)
+        lookup_s2 = test_s2.set_index("entity_id").to_dict("index")
+        lookup_s3 = test_s3.set_index("entity_id").to_dict("index")
+        
+    test_matches, test_candidates = run_chunked_inference(
+        clf, test_s1, idx_s2_test, idx_s3_test,
+        lookup_s2, lookup_s3,
+        threshold=best_threshold,
+        chunk_size=50000
     )
-    write_id_list_tsv(
-        os.path.join(output_dir, "candidate_pairs.tsv"),
-        test_s1_ids, test_candidates, "candidate_entity_ids",
-    )
-    print(f"Done. See {output_dir}/matching_results.tsv and {output_dir}/candidate_pairs.tsv")
-
+    
+    # 6. Writing Outputs
+    print("\n[PHASE 7] Writing Output TSVs...", flush=True)
+    matching_path = os.path.join(output_dir, "matching_results.tsv")
+    candidate_path = os.path.join(output_dir, "candidate_pairs.tsv")
+    
+    test_s1_source = paths["test_s1"] if not args.sample else list(test_s1["entity_id"])
+    write_results_tsv(matching_path, test_s1_source, test_matches, "matched_entity_ids")
+    write_results_tsv(candidate_path, test_s1_source, test_candidates, "candidate_entity_ids")
+    
+    # 7. Official Validation
+    print("\n[PHASE 8] Executing Official Submission Validator...", flush=True)
+    test_dir = os.path.dirname(paths["test_s1"])
+    val_passed = run_official_validator(matching_path, candidate_path, test_dir)
+    print(f"  Validation status: {'PASSED' if val_passed else 'WARNINGS/ISSUES'}", flush=True)
+    
+    # 8. Final Packaging
+    print("\n[PHASE 9] Packaging Submission Package...", flush=True)
+    zip_path = package_submission_zip(team_name=args.team_name)
+    
+    total_elapsed = time.time() - start_time
+    print("\n" + "=" * 70, flush=True)
+    print(f"  PIPELINE COMPLETE in {total_elapsed/60:.2f} minutes ({total_elapsed:.1f}s)!", flush=True)
+    print(f"  Matching Results: {matching_path}", flush=True)
+    print(f"  Candidate Pairs:  {candidate_path}", flush=True)
+    print(f"  Submission ZIP:   {zip_path}", flush=True)
+    print("=" * 70, flush=True)
 
 if __name__ == "__main__":
     main()
