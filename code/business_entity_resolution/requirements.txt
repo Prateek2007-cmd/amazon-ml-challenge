@@ -1,0 +1,8 @@
+# Pinned to what was actually verified working during development.
+# Before your final submission zip, re-freeze in your own environment
+# so this matches exactly what you ran on:
+#   pip freeze | grep -iE "pandas|scikit-learn|rapidfuzz|numpy" > requirements.txt
+pandas==3.0.2
+scikit-learn==1.8.0
+rapidfuzz==3.14.6
+numpy==2.4.4
