@@ -17,3 +17,11 @@ output/*.tsv
 *.db
 *.sqlite
 
+# Large experiment artifacts and binary matrices
+*.npy
+*.npz
+*.pkl
+*.feather
+catboost_info/
+
+
